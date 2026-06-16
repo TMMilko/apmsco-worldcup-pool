@@ -529,14 +529,29 @@ async function doJoin(){
   var name=(document.getElementById("jn-name").value||"").trim();
   if(!name){ document.getElementById("jn-name").focus(); return; }
   var email=(document.getElementById("jn-email").value||"").trim();
-  if(email){ var lc=normEmail(email);
-    for(var i=0;i<state.players.length;i++){ if(normEmail(state.players[i].email)===lc){ lsSet(ME_KEY, state.players[i].id); state.me=state.players[i].id; await loadAll(); render(); return; } } }
+  var lc=normEmail(email);
+  function findByEmail(list){ if(!lc||!list) return null; for(var i=0;i<list.length;i++){ if(normEmail(list[i].email)===lc) return list[i]; } return null; }
+  function adopt(p){ lsSet(ME_KEY, p.id); state.me=p.id; }
+  // 1) check the list already in memory
+  var hit=findByEmail(state.players);
+  if(hit){ adopt(hit); await loadAll(); render(); return; }
+  // 2) authoritative re-check against the live database (memory may be stale or not loaded yet)
+  if(lc){
+    try{ var look=await sb.from("players").select("id,name,email");
+      if(!look.error){ hit=findByEmail(look.data); if(hit){ adopt(hit); await loadAll(); render(); return; } } }catch(e){}
+  }
+  // 3) no existing player with this email -> create one
   try{
     var r=await sb.from("players").insert({name:name, email:email||null}).select();
     if(r.error) throw r.error;
     var id=r.data && r.data[0] && r.data[0].id; if(!id) throw new Error("No id returned");
     lsSet(ME_KEY, id); state.me=id;
-  }catch(e){ toast("Couldn't join: "+(e.message||e)); return; }
+  }catch(e){
+    // last-ditch: a row may have appeared in a race -> adopt it instead of duplicating
+    if(lc){ try{ var again=await sb.from("players").select("id,name,email");
+      if(again.data){ hit=findByEmail(again.data); if(hit){ adopt(hit); await loadAll(); render(); return; } } }catch(e2){} }
+    toast("Couldn't join: "+(e.message||e)); return;
+  }
   await loadAll(); render();
 }
 function doSwitch(){ lsDel(ME_KEY); state.me=null; state.tab="predict"; state.orgUnlocked=false; render(); }
