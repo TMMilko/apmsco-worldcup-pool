@@ -158,6 +158,20 @@ function myPlayer(){ for(var i=0;i<state.players.length;i++) if(state.players[i]
 function myPreds(){ return (state.me && state.allPreds[state.me]) || {}; }
 
 /* ===================== data (Supabase) ===================== */
+async function fetchAllPreds(){
+  var all=[], from=0, size=1000;
+  for(;;){
+    var r=await sb.from("predictions").select("*")
+      .order("player_id",{ascending:true}).order("match_id",{ascending:true})
+      .range(from, from+size-1);
+    if(r.error) throw r.error;
+    var rows=r.data||[];
+    all=all.concat(rows);
+    if(rows.length<size) break;
+    from+=size;
+  }
+  return all;
+}
 async function loadAll(){
   try{
     var s  = await sb.from("settings").select("*").eq("id",1).maybeSingle();
@@ -166,8 +180,7 @@ async function loadAll(){
     if(pl.error) throw pl.error;
     var ms = await sb.from("matches").select("*");
     if(ms.error) throw ms.error;
-    var pr = await sb.from("predictions").select("*");
-    if(pr.error) throw pr.error;
+    var prData = await fetchAllPreds();
 
     state.settings = s.data ? {poolName:s.data.pool_name, exact:s.data.exact_pts, result:s.data.result_pts, pin:s.data.pin} : null;
     state.players  = (pl.data||[]).map(function(p){ return {id:p.id,name:p.name,email:p.email}; });
@@ -176,7 +189,7 @@ async function loadAll(){
     state.matches=matches;
     var results={}; matches.forEach(function(m){ if(m.result_home!=null && m.result_away!=null) results[m.id]={home:m.result_home,away:m.result_away}; });
     state.results=results;
-    var ap={}; (pr.data||[]).forEach(function(x){ (ap[x.player_id]=ap[x.player_id]||{})[x.match_id]={home:x.home,away:x.away}; });
+    var ap={}; prData.forEach(function(x){ (ap[x.player_id]=ap[x.player_id]||{})[x.match_id]={home:x.home,away:x.away}; });
     state.allPreds=ap;
     state.me = lsGet(ME_KEY) || null;
     state.connError=""; state.loading=false;
