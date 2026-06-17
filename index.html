@@ -257,8 +257,9 @@ function viewJoin(){
     '<h1 class="disp" style="font-size:30px;text-align:center;margin:16px 0 2px">'+esc(s.poolName)+'</h1>'+
     '<p class="muted" style="text-align:center;margin:0 0 26px">'+state.players.length+' '+(state.players.length===1?'player':'players')+' so far · '+s.exact+' pts exact, '+s.result+' pt result</p>'+
     field("Your name", '<input id="jn-name" class="in" placeholder="How colleagues will see you">')+
-    field("Email", '<input id="jn-email" class="in" type="email" placeholder="you@company.com">', "Used to recognise you across devices and to contact the winner. Optional but recommended.")+
+    field("Email", '<input id="jn-email" class="in" type="email" placeholder="you@company.com">', "Required. It keeps you as one player across devices, prevents duplicate entries, and lets the organizer reach the winner.")+
     '<button class="btn btn-primary" data-act="join" style="width:100%;margin-top:8px">Join the pool</button>'+
+    '<div id="jn-err" style="color:var(--coral);font-size:13px;text-align:center;margin-top:10px"></div>'+
     tags+'</div>';
 }
 function viewHeader(){
@@ -539,9 +540,12 @@ async function doSetup(){
   state.orgUnlocked=true; await loadAll(); render();
 }
 async function doJoin(){
+  var err=document.getElementById("jn-err");
   var name=(document.getElementById("jn-name").value||"").trim();
-  if(!name){ document.getElementById("jn-name").focus(); return; }
+  if(!name){ if(err) err.textContent="Please enter your name."; document.getElementById("jn-name").focus(); return; }
   var email=(document.getElementById("jn-email").value||"").trim();
+  if(!email || !/^\S+@\S+\.\S+$/.test(email)){ if(err) err.textContent="Please enter a valid email — it's how we keep you as one player and avoid duplicates."; document.getElementById("jn-email").focus(); return; }
+  if(err) err.textContent="";
   var lc=normEmail(email);
   function findByEmail(list){ if(!lc||!list) return null; for(var i=0;i<list.length;i++){ if(normEmail(list[i].email)===lc) return list[i]; } return null; }
   function adopt(p){ lsSet(ME_KEY, p.id); state.me=p.id; }
