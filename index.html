@@ -107,7 +107,7 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){
 function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
-function normEmail(e){ return String(e||"").normalize("NFKC").replace(/[\u200B-\u200D\uFEFF]/g,"").replace(/\s+/g,"").toLowerCase(); }
+function normEmail(e){ return String(e||"").normalize("NFKC").replace(/[\u0000-\u001F\u007F-\u009F\u00AD\u061C\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/g,"").replace(/\s+/g,"").toLowerCase(); }
 
 function scorePrediction(pred, actual, cfg){
   if(!actual || actual.home==null || actual.away==null) return null;
@@ -289,7 +289,7 @@ function viewPredict(){
     var key=m.kickoff?new Date(m.kickoff).toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"}):"Date TBD";
     (groups[key]=groups[key]||[]).push(m); });
   var html='<div class="up"><div style="display:flex;justify-content:space-between;align-items:center;margin:14px 2px 6px">'+
-    '<h2 class="disp sect" style="margin:0">Upcoming <span style="color:var(--muted);font-size:15px">'+list.length+'</span></h2><button class="btn btn-ghost" data-act="refresh" style="font-size:12px;padding:6px 10px">↻ Refresh</button></div>';
+    '<h2 class="disp sect" style="margin:0">Upcoming</h2><button class="btn btn-ghost" data-act="refresh" style="font-size:12px;padding:6px 10px">↻ Refresh</button></div>';
   Object.keys(groups).forEach(function(day){
     html+='<div style="margin-bottom:8px"><div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:1px;margin:16px 2px 8px">'+esc(day)+'</div>';
     groups[day].forEach(function(m){ html+=matchCard(m, mine, c); });
@@ -310,7 +310,7 @@ function viewPast(){
     if(!groups[key]){ groups[key]=[]; order.push(key); }
     groups[key].push(m); });
   var html='<div class="up"><div style="display:flex;justify-content:space-between;align-items:center;margin:14px 2px 6px">'+
-    '<h2 class="disp sect" style="margin:0">Results <span style="color:var(--muted);font-size:15px">'+list.length+'</span></h2><button class="btn btn-ghost" data-act="refresh" style="font-size:12px;padding:6px 10px">↻ Refresh</button></div>';
+    '<h2 class="disp sect" style="margin:0">Results</h2><button class="btn btn-ghost" data-act="refresh" style="font-size:12px;padding:6px 10px">↻ Refresh</button></div>';
   order.forEach(function(day){
     html+='<div style="margin-bottom:8px"><div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:1px;margin:16px 2px 8px">'+esc(day)+'</div>';
     groups[day].forEach(function(m){ html+=matchCard(m, mine, c); });
@@ -376,7 +376,7 @@ function viewBoard(){
   if(rows.length===0) return empty("No players yet","Share the link with colleagues so they can join.");
   var medal=["#f5c542","#cfd8d2","#cd8d5b"];
   var champ = played>0 && rows.length>0 && rows[0].pts>0 ? rows[0] : null;
-  var html='<div class="up"><h2 class="disp sect">Leaderboard <span style="color:var(--muted);font-size:15px">'+rows.length+'</span></h2>'+
+  var html='<div class="up"><h2 class="disp sect">Leaderboard</h2>'+
     '<p class="muted" style="font-size:13px;margin:0 2px 14px">'+c.exact+' pts exact score · '+c.result+' pt correct result · '+played+' match'+(played===1?'':'es')+' scored</p>';
   if(champ){
     html+='<div class="champ"><div style="font-size:30px">🏆</div>'+
