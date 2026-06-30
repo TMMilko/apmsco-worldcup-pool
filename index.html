@@ -157,8 +157,8 @@ function myBonus(){ return (state.me && state.bonus[state.me]) || null; }
 
 function advBtn(m, side, sel){
   var team=side==="home"?m.home:m.away, on=sel===side;
-  return '<button class="advbtn" data-act="adv" data-mid="'+m.id+'" data-side="'+side+'" style="flex:1;padding:8px;border-radius:9px;cursor:pointer;font-weight:700;font-size:13px;font-family:inherit;'+
-    'border:1px solid '+(on?'var(--green)':'var(--line)')+';background:'+(on?'rgba(53,226,124,.14)':'transparent')+';color:'+(on?'var(--green)':'var(--text)')+'">'+esc(team)+'</button>';
+  return '<button class="advbtn" data-act="adv" data-mid="'+m.id+'" data-side="'+side+'" data-team="'+esc(team)+'" style="flex:1;padding:13px 8px;border-radius:10px;cursor:pointer;font-weight:700;font-size:14px;font-family:inherit;'+
+    'border:2px solid '+(on?'var(--green)':'var(--line)')+';background:'+(on?'rgba(53,226,124,.16)':'transparent')+';color:'+(on?'var(--green)':'var(--text)')+'">'+(on?'✓ ':'')+esc(team)+'</button>';
 }
 function orgAdvBtn(m, side){
   var sel=(m.id in state.orgAdv)?state.orgAdv[m.id]:(m.advanced||null), on=sel===side, team=side==="home"?m.home:m.away;
@@ -227,7 +227,7 @@ function toast(msg){
 var state = {
   loading:true, connError:"", settings:null, players:[], matches:[], results:{}, allPreds:{}, bonus:{},
   me:null, tab:"predict", orgUnlocked:false, showBulk:false, pinErr:"", editing:null,
-  advDraft:{}, orgAdv:{}
+  advDraft:{}, orgAdv:{}, orgShowAll:false
 };
 function cfg(){ return state.settings ? {exact:state.settings.exact!=null?state.settings.exact:3, result:state.settings.result!=null?state.settings.result:1} : {exact:3,result:1}; }
 function myPlayer(){ for(var i=0;i<state.players.length;i++) if(state.players[i].id===state.me) return state.players[i]; return null; }
@@ -424,9 +424,13 @@ function matchCard(m, mine, c){
   if(ko){
     var advSel = (m.id in state.advDraft)? state.advDraft[m.id] : (pred&&pred.advance)||null;
     if(!locked){
-      html+='<div class="muted" style="font-size:10px;text-align:center;margin-top:8px">Predict the score at 90 minutes</div>'+
-        '<div style="margin-top:6px"><div class="muted" style="font-size:11px;margin-bottom:5px;text-align:center">Who advances?</div>'+
-        '<div style="display:flex;gap:8px">'+advBtn(m,"home",advSel)+advBtn(m,"away",advSel)+'</div></div>';
+      html+='<div style="font-size:12px;text-align:center;margin-top:9px;color:var(--muted)">↑ Predict the score at <b style="color:var(--text)">90 minutes</b></div>'+
+        '<div id="advbox-'+m.id+'" style="margin-top:10px;padding:11px 10px 12px;border:1.5px solid '+(advSel?'rgba(245,197,66,.45)':'var(--coral)')+';border-radius:12px;background:'+(advSel?'rgba(245,197,66,.07)':'rgba(255,94,82,.07)')+'">'+
+        '<div style="font-size:15px;font-weight:800;text-align:center;margin-bottom:2px">Who goes through? <span style="color:var(--gold)">+2 pts</span></div>'+
+        '<div style="font-size:11px;text-align:center;color:var(--muted);margin-bottom:9px">Tap the team you think advances (even if you predicted a draw)</div>'+
+        '<div style="display:flex;gap:8px">'+advBtn(m,"home",advSel)+advBtn(m,"away",advSel)+'</div>'+
+        '<div id="advnudge-'+m.id+'" style="font-size:12px;text-align:center;margin-top:8px;color:var(--coral);font-weight:600;'+(advSel?'display:none':'')+'">⚠ No pick yet — you\'ll miss +2 points</div>'+
+        '</div>';
     } else {
       var myAdv = pred&&pred.advance?(pred.advance==="home"?m.home:m.away):null;
       var wentThru = final&&m.advanced?(m.advanced==="home"?m.home:m.away):null;
@@ -519,32 +523,24 @@ function viewOrg(){
       '<button class="btn btn-primary" data-act="org-unlock" style="width:100%;margin-top:12px">Unlock</button></div>';
   }
   var c=cfg();
-  var html='<div class="up"><h2 class="disp sect">Pool settings</h2>'+
-    '<div class="card" style="padding:14px;margin-bottom:18px">'+
-    field("Pool name", '<input class="in setin" data-field="poolName" value="'+esc(s.poolName)+'">')+
-    '<div class="grid2">'+field("Pts · exact", '<input class="in setin" data-field="exact" inputmode="numeric" value="'+c.exact+'" style="text-align:center">')+
-      field("Pts · result", '<input class="in setin" data-field="result" inputmode="numeric" value="'+c.result+'" style="text-align:center">')+'</div></div>';
-  html+='<h2 class="disp sect" style="margin-top:0">Add a fixture</h2>'+
-    '<p class="muted" style="font-size:12px;margin:0 2px 8px;line-height:1.5">Add matches anytime. Load the group stage now, then add each knockout round once the bracket is decided. Players can predict any match right up until its kickoff.</p>'+
-    '<div class="card" style="padding:14px">'+
-    '<div class="grid2">'+field("Home team", '<input id="m-home" class="in" list="teams" placeholder="Team">')+
-      field("Away team", '<input id="m-away" class="in" list="teams" placeholder="Team">')+'</div>'+
-    '<div class="grid2">'+field("Stage / group", '<input id="m-stage" class="in" list="stages" value="Group stage">')+
-      field("Kickoff (local)", '<input id="m-kick" class="in" type="datetime-local">')+'</div>'+
-    '<div style="display:flex;gap:8px"><button class="btn btn-primary" data-act="add-match" style="flex:1">Add fixture</button>'+
-      '<button class="btn btn-ghost" data-act="bulk-toggle">Paste many</button></div>';
-  if(state.showBulk){
-    html+='<div style="margin-top:12px"><textarea id="m-bulk" class="in" rows="6" placeholder="One per line:&#10;Mexico, South Africa, 2026-06-11 18:00, Group A&#10;USA vs Paraguay, 2026-06-12 18:00"></textarea>'+
-      '<button class="btn btn-primary" data-act="bulk-import" style="width:100%;margin-top:8px">Import</button></div>';
-  }
-  if(state.matches.length===0){
-    html+='<button class="btn btn-ghost" data-act="seed" style="width:100%;margin-top:8px;font-size:13px">+ Seed the two confirmed opening fixtures (verify kickoff times)</button>';
-  }
-  html+='</div>';
+  var html='<div class="up">';
+
+  // ---- Fixtures & results (moved to top to reduce scrolling) ----
   if(state.matches.length>0){
-    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin:20px 2px 8px">'+
-      '<h2 class="disp sect" style="margin:0">Fixtures &amp; results</h2><button class="btn btn-ghost" data-act="refresh" style="font-size:12px;padding:6px 10px">↻</button></div>';
-    state.matches.forEach(function(m){
+    var needScore=function(m){ return isLocked(m) && !state.results[m.id]; };
+    var ordered=state.matches.slice().sort(function(a,b){ return new Date(b.kickoff||0)-new Date(a.kickoff||0); });
+    var shown=state.orgShowAll?ordered:ordered.filter(needScore);
+    var needCount=state.matches.filter(needScore).length;
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin:0 2px 8px">'+
+      '<h2 class="disp sect" style="margin:0">Enter results</h2>'+
+      '<button class="btn btn-ghost" data-act="refresh" style="font-size:12px;padding:6px 10px">↻</button></div>'+
+      '<div style="display:flex;gap:8px;margin:0 2px 10px">'+
+      '<button class="btn '+(!state.orgShowAll?'btn-primary':'btn-ghost')+'" data-act="org-need" style="flex:1;font-size:12px;padding:8px">Needs a score ('+needCount+')</button>'+
+      '<button class="btn '+(state.orgShowAll?'btn-primary':'btn-ghost')+'" data-act="org-all" style="flex:1;font-size:12px;padding:8px">All fixtures ('+state.matches.length+')</button></div>';
+    if(shown.length===0){
+      html+='<div class="card muted" style="padding:18px;text-align:center;font-size:13px">'+(state.orgShowAll?'No fixtures yet.':'Nothing waiting for a score right now. 🎉')+'</div>';
+    }
+    shown.forEach(function(m){
       if(state.editing===m.id){
         html+='<div class="card" style="padding:14px;border-color:rgba(53,226,124,.3)">'+
           '<div class="muted" style="font-size:11px;margin-bottom:8px">Editing fixture</div>'+
@@ -579,6 +575,29 @@ function viewOrg(){
         '<button class="btn btn-primary" data-act="set-result" data-id="'+m.id+'" style="font-size:12px;padding:6px 14px">'+(result?'Update':'Save result')+'</button></div></div>';
     });
   }
+
+  html+='<h2 class="disp sect">Pool settings</h2>'+
+    '<div class="card" style="padding:14px;margin-bottom:18px">'+
+    field("Pool name", '<input class="in setin" data-field="poolName" value="'+esc(s.poolName)+'">')+
+    '<div class="grid2">'+field("Pts · exact", '<input class="in setin" data-field="exact" inputmode="numeric" value="'+c.exact+'" style="text-align:center">')+
+      field("Pts · result", '<input class="in setin" data-field="result" inputmode="numeric" value="'+c.result+'" style="text-align:center">')+'</div></div>';
+  html+='<h2 class="disp sect" style="margin-top:0">Add a fixture</h2>'+
+    '<p class="muted" style="font-size:12px;margin:0 2px 8px;line-height:1.5">Add matches anytime. Load the group stage now, then add each knockout round once the bracket is decided. Players can predict any match right up until its kickoff.</p>'+
+    '<div class="card" style="padding:14px">'+
+    '<div class="grid2">'+field("Home team", '<input id="m-home" class="in" list="teams" placeholder="Team">')+
+      field("Away team", '<input id="m-away" class="in" list="teams" placeholder="Team">')+'</div>'+
+    '<div class="grid2">'+field("Stage / group", '<input id="m-stage" class="in" list="stages" value="Group stage">')+
+      field("Kickoff (local)", '<input id="m-kick" class="in" type="datetime-local">')+'</div>'+
+    '<div style="display:flex;gap:8px"><button class="btn btn-primary" data-act="add-match" style="flex:1">Add fixture</button>'+
+      '<button class="btn btn-ghost" data-act="bulk-toggle">Paste many</button></div>';
+  if(state.showBulk){
+    html+='<div style="margin-top:12px"><textarea id="m-bulk" class="in" rows="6" placeholder="One per line:&#10;Mexico, South Africa, 2026-06-11 18:00, Group A&#10;USA vs Paraguay, 2026-06-12 18:00"></textarea>'+
+      '<button class="btn btn-primary" data-act="bulk-import" style="width:100%;margin-top:8px">Import</button></div>';
+  }
+  if(state.matches.length===0){
+    html+='<button class="btn btn-ghost" data-act="seed" style="width:100%;margin-top:8px;font-size:13px">+ Seed the two confirmed opening fixtures (verify kickoff times)</button>';
+  }
+  html+='</div>';
   if(knockoutTeams().length>0){
     var kt=knockoutTeams();
     html+='<h2 class="disp sect">Tournament outcome</h2>'+
@@ -641,13 +660,18 @@ function onClick(e){
   if(act==="save-preds"){ doSavePreds(); return; }
   if(act==="adv"){ var am=t.dataset.mid, as=t.dataset.side; state.advDraft[am]=as;
     document.querySelectorAll('.advbtn[data-mid="'+am+'"]').forEach(function(b){ var on=b.dataset.side===as;
-      b.style.borderColor=on?'var(--green)':'var(--line)'; b.style.background=on?'rgba(53,226,124,.14)':'transparent'; b.style.color=on?'var(--green)':'var(--text)'; });
+      b.style.borderColor=on?'var(--green)':'var(--line)'; b.style.background=on?'rgba(53,226,124,.16)':'transparent'; b.style.color=on?'var(--green)':'var(--text)';
+      b.textContent=(on?'✓ ':'')+b.dataset.team; });
+    var abox=document.getElementById('advbox-'+am); if(abox){ abox.style.borderColor='rgba(245,197,66,.45)'; abox.style.background='rgba(245,197,66,.07)'; }
+    var anud=document.getElementById('advnudge-'+am); if(anud){ anud.style.display='none'; }
     updateSaveBar(); return; }
   if(act==="org-adv"){ var om=t.dataset.mid, os=t.dataset.side; state.orgAdv[om]=os;
     document.querySelectorAll('.oadv[data-mid="'+om+'"]').forEach(function(b){ var on=b.dataset.side===os;
       b.style.borderColor=on?'var(--green)':'var(--line)'; b.style.background=on?'rgba(53,226,124,.14)':'transparent'; b.style.color=on?'var(--green)':'var(--text)'; });
     return; }
   if(act==="save-bonus"){ doSaveBonus(); return; }
+  if(act==="org-need"){ state.orgShowAll=false; render(); return; }
+  if(act==="org-all"){ state.orgShowAll=true; render(); return; }
   if(act==="set-outcome"){ doSetOutcome(); return; }
   if(act==="toggle-picks"){ state["open_"+id]=!state["open_"+id]; render(); return; }
   if(act==="org-unlock"){ doUnlock(); return; }
