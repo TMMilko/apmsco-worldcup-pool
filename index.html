@@ -166,6 +166,12 @@ function orgAdvBtn(m, side){
     'border:1px solid '+(on?'var(--green)':'var(--line)')+';background:'+(on?'rgba(53,226,124,.14)':'transparent')+';color:'+(on?'var(--green)':'var(--text)')+'">'+esc(team)+'</button>';
 }
 function teamOpts(teams, sel){ return '<option value="">—</option>'+teams.map(function(t){ return '<option value="'+esc(t)+'"'+(sel===t?' selected':'')+'>'+esc(t)+'</option>'; }).join(''); }
+var STAGES=["Group stage","Group A","Group B","Group C","Group D","Group E","Group F","Group G","Group H","Group I","Group J","Group K","Group L","Round of 32","Round of 16","Quarter-final","Semi-final","Third place","Final"];
+function stageSelect(id, current){
+  var cur=current||"Group stage", opts=STAGES.slice();
+  if(cur && opts.indexOf(cur)<0) opts.unshift(cur);
+  return '<select id="'+id+'" class="in">'+opts.map(function(x){ return '<option value="'+esc(x)+'"'+(x===cur?' selected':'')+'>'+esc(x)+'</option>'; }).join('')+'</select>';
+}
 
 function bonusCard(){
   var teams=knockoutTeams(); if(teams.length===0) return "";
@@ -546,7 +552,7 @@ function viewOrg(){
           '<div class="muted" style="font-size:11px;margin-bottom:8px">Editing fixture</div>'+
           '<div class="grid2">'+field("Home team", '<input id="e-home" class="in" list="teams" value="'+esc(m.home)+'">')+
             field("Away team", '<input id="e-away" class="in" list="teams" value="'+esc(m.away)+'">')+'</div>'+
-          '<div class="grid2">'+field("Stage / group", '<input id="e-stage" class="in" list="stages" value="'+esc(m.stage||"")+'">')+
+          '<div class="grid2">'+field("Stage / group", stageSelect("e-stage", m.stage||""))+
             field("Kickoff (local)", '<input id="e-kick" class="in" type="datetime-local" value="'+toLocalInput(m.kickoff)+'">')+'</div>'+
           '<div style="display:flex;gap:8px;justify-content:flex-end">'+
           '<button class="btn btn-ghost" data-act="cancel-edit" style="font-size:12px;padding:6px 12px">Cancel</button>'+
@@ -586,7 +592,7 @@ function viewOrg(){
     '<div class="card" style="padding:14px">'+
     '<div class="grid2">'+field("Home team", '<input id="m-home" class="in" list="teams" placeholder="Team">')+
       field("Away team", '<input id="m-away" class="in" list="teams" placeholder="Team">')+'</div>'+
-    '<div class="grid2">'+field("Stage / group", '<input id="m-stage" class="in" list="stages" value="Group stage">')+
+    '<div class="grid2">'+field("Stage / group", stageSelect("m-stage", "Group stage"))+
       field("Kickoff (local)", '<input id="m-kick" class="in" type="datetime-local">')+'</div>'+
     '<div style="display:flex;gap:8px"><button class="btn btn-primary" data-act="add-match" style="flex:1">Add fixture</button>'+
       '<button class="btn btn-ghost" data-act="bulk-toggle">Paste many</button></div>';
