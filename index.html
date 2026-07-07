@@ -623,7 +623,9 @@ function viewOrg(){
     html+='</div>';
   }
   html+='<datalist id="stages">'+["Group stage","Group A","Group B","Group C","Group D","Group E","Group F","Group G","Group H","Group I","Group J","Group K","Group L","Round of 32","Round of 16","Quarter-final","Semi-final","Third place","Final"].map(function(x){return '<option value="'+x+'">';}).join('')+'</datalist>';
-  html+='<datalist id="teams">'+["Mexico","Canada","USA","Argentina","Spain","France","England","Brazil","Portugal","Germany","Netherlands","Italy","Croatia","Colombia","Uruguay","Japan","South Korea","Morocco","Senegal","South Africa","Paraguay","Australia","Türkiye","Uzbekistan","Jordan","Cape Verde","Curaçao","DR Congo"].map(function(t){return '<option value="'+t+'">';}).join('')+'</datalist>';
+  var teamSet={}; state.matches.forEach(function(m){ if(m.home)teamSet[m.home]=1; if(m.away)teamSet[m.away]=1; });
+  ["Mexico","Canada","USA","Argentina","Spain","France","England","Brazil","Portugal","Germany","Netherlands","Croatia","Colombia","Uruguay","Japan","South Korea","Morocco","Senegal","South Africa","Paraguay","Australia","Türkiye","Uzbekistan","Jordan","Cape Verde","Curaçao","DR Congo","Belgium","Norway","Sweden","Switzerland","Austria","Algeria","Egypt","Iran","New Zealand","Ecuador","Ivory Coast","Tunisia","Ghana","Panama","Haiti","Scotland","Qatar","Bosnia and Herzegovina","Saudi Arabia","Iraq"].forEach(function(t){ teamSet[t]=1; });
+  html+='<datalist id="teams">'+Object.keys(teamSet).sort().map(function(t){return '<option value="'+esc(t)+'">';}).join('')+'</datalist>';
   html+='</div>';
   return html;
 }
